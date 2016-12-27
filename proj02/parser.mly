@@ -65,10 +65,15 @@ open Printf;;
 open Absyn;;
 
 exception Semant_error;;
+let parse_error s = (* called by the parser function on error *)
+    print_endline s;
+    flush stdout;;
 
 %}
 
+/* Declarations */
 /* File parser.mly */
+
 %token <int> NUM
 %token <string> STR ID
 %token INT IF WHILE SPRINT IPRINT SCAN EQ NEQ GT LT GE LE ELSE RETURN
@@ -86,6 +91,8 @@ exception Semant_error;;
 
 %%
 
+/* Rules */
+
 prog : stmt  {  $1  }
      ;
 
@@ -93,13 +100,12 @@ ty   : INT   { "int" }
      ;
 
 /* sequential dec */
-
 decs : /* empty */ { [] }
      | decs dec { match ($1,$2) with
                       (_::FunctionDec(_,_,_)::[],VarDec(_,_)::_) -> raise Semant_error
                     | _ -> $1@$2 }
      ;
-/* dec of func and var */
+/* declaration of function and variables */
 /* block : function body */
 dec  : ty ids SEMI   { List.map (fun x -> VarDec (x,$1)) $2 }
      | ty ID LP fargs_opt RP block  { [FunctionDec($2, $4, $6)] }

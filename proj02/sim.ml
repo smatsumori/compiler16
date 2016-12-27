@@ -7,10 +7,24 @@ let main () =
   in
   let lexbuf = Lexing.from_channel cin in
   (* The start of the entire program *)
+  try
   Absyn.print_stmt (Parser.prog Lexer.lexer lexbuf)
+  with Parsing.Parse_error
+    -> print_string "Syntax error found on:\nLine: ";
+    print_int (Lexing.(lexbuf.lex_curr_p.pos_lnum));
+    print_string(" Token: ");
+    print_string (Lexing.lexeme lexbuf);
+    print_string "\n";
+    flush stdout;;
+  (*  -> print_int lexbuf.lex_curr_p.pos_lnum *)
   (* print_stmt prints syntax tree *)
 
 (* catch main get parse_error *)
+ 
+let _ = main()
+
+(*
 let _ = try main () with Parsing.Parse_error 
-          -> print_string "Syntax error!\n"
+          -> print_string "Syntax error detected!\n"
+*)
 
