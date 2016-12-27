@@ -1,0 +1,6 @@
+ Block([ FunctionDec(fact,[ x:int ], 
+			 Block([],[ If( CallFunc(==,[ VarExp(x) IntExp(0)]), 
+					 CallProc([ IntExp(1)]), 
+					 CallProc([ CallFunc(*,[ VarExp(x) 
+							 CallFunc(fact,[ CallFunc(-,[ VarExp(x) IntExp(1)])])])]))]))],
+		 [ CallProc([ CallFunc(fact,[ IntExp(5)])])])
