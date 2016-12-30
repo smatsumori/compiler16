@@ -40,6 +40,6 @@ rule lexer = parse
 | ';'      { SEMI }
 |  '\n'       { (line := (!line) + 1; lexer lexbuf) }(* eat up whitespace *) 
 | [' ' '\t'] { lexer lexbuf }(* eat up whitespace *) 
-| "/*"['a'-'z' '0'-'9' ' ' '\t']*"*/"    {lexer lexbuf}  (* comment out *)
+| "/*"['a'-'z' '0'-'9' ' ' '\t']*"*/" {lexer lexbuf}  (* comment out *)
 | eof { raise End_of_file }
-| _        { raise No_such_symbol }
+| _   { raise No_such_symbol }

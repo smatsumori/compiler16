@@ -1,73 +1,9 @@
 %{
-(*
-The grammer of SIMPLE language:
-
-prog -> stmt
-
-ty -> int
-
-dec -> ty ids ';'
-     | ty ID '(' fargs_opt ')' block
-     | empty
-
-fargs_opt -> 
-      | fargs
-
-fargs -> ty ID
-      | fargs ',' ty ID
-      ;
-
-ids -> ID
-    | ids ',' ID
-		
-stmts -> stmt
-      | stmts ';' stmt
-
-stmt -> ID '=' expr ';'
-	| IF '(' cond ')' stmt 
-	| IF '(' cond ')' stmt ELSE stmt
-       	| WHILE '(' cond ')' stmt
-	| SPRINT '(' STRING ')'  ';'
- 	| IPRINT '(' expr ')'';'
-        | RETURN expr ';'
-	| block
-        | ';'
-        | ID '(' exprs_opt ')'
-
-block -> '{' stmts '}'
-
-expr ->   expr '+' term
-	| expr '-' term
-	| term
-
-aargs_opt -> 
-        | aargs
-
-aargs ->  aargs ',' expr
-        | expr
-
-term ->   term  '*' factor
-	| term  DIV factor
-	| factor
-
-factor ->  '(' expr ')'		
-	| NUM
-	| ID
-	| '-' expr
-        | ID '(' aargs_opt ')'
-
-cond 	-> expr condop expr
-
-condop  -> "==" | "!=" | '>' | '<' | ">=" | "<="
-*)
 
 open Printf;;
 open Absyn;;
 
 exception Semant_error;;
-let parse_error s = (* called by the parser function on error *)
-    print_endline s;
-    flush stdout;;
 
 %}
 
@@ -165,6 +101,8 @@ expr : NUM { IntExp $1  }
      | expr DIV expr { CallFunc ("/", [$1; $3]) }
      | SUB expr %prec UMINUS { CallFunc("!", [$2]) } /* inv sign */
      | LP expr RP  { $2 }
+     | LP error RP { DummyExp }
+     | error SEMI { DummyExp }    /* skip untill semicolon */
      ;
 
 cond : expr EQ expr  { CallFunc ("==", [$1; $3]) }
