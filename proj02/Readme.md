@@ -12,4 +12,4 @@ Comments are specified as balancing /* and */.
 regular expressions, so in order to handle comment in lexer
 you can do it by just adding regex to `lexer.mll`.
 
-## エラーメッセージの表示
+## Showing an error mesg
