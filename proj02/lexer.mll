@@ -1,9 +1,11 @@
 (* The scanner for SIMPLE language *)
 
 {
+ (* HEADER *)
  open Parser  
  exception No_such_symbol
  let line = ref 1;;
+ let token = ref "";;
 }
 
 let digit = ['0'-'9']

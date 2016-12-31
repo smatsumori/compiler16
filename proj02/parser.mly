@@ -4,7 +4,8 @@ open Printf;;
 open Absyn;;
 
 exception Semant_error;;
-
+let parse_error s =
+    raise Parsing.Parse_error;;
 %}
 
 /* Declarations */
@@ -78,6 +79,7 @@ stmt : ID ASSIGN expr SEMI    { Assign ($1, $3) }
      | RETURN expr SEMI    { CallProc ("return", [$2]) }    /* end of a function */
      | block { $1 }
      | SEMI { NilStmt } /* empty statement */
+     | error SEMI { DummyStmt }
      ;
 
 aargs_opt: /* empty */     { [] }
@@ -102,7 +104,6 @@ expr : NUM { IntExp $1  }
      | SUB expr %prec UMINUS { CallFunc("!", [$2]) } /* inv sign */
      | LP expr RP  { $2 }
      | LP error RP { DummyExp }
-     | error SEMI { DummyExp }    /* skip untill semicolon */
      ;
 
 cond : expr EQ expr  { CallFunc ("==", [$1; $3]) }
