@@ -1,0 +1,7 @@
+*
+!Makefile
+!.gitignore
+!lexer.mll
+!absyn.ml
+!sim.ml
+!emitter.ml
