@@ -10,6 +10,8 @@ let id = ['a'-'z' '_'] ['a'-'z' '0'-'9']*
 
 rule lexer = parse
 | digit+ as num  { NUM (int_of_string num) }
+| "do"     { DO }   (* HERE do while*)
+| "for"    { FOR }    (* HERE for loop *)
 | "if"     { IF }
 | "else"   { ELSE }
 | "while"  { WHILE }
@@ -31,6 +33,10 @@ rule lexer = parse
 | '-'      { SUB }
 | '*'      { MUL }
 | '/'      { DIV }
+| '%'      { MOD }  (* HERE modular *)
+| '^'      { POW }  (* HERE  power*)
+| "++"     { INC }  (* HERE  increment*)
+| "+="     { ADDE } (* HERE *)
 | '{'      { LB  }
 | '}'      { RB  }
 | '('      { LP  }

@@ -10,12 +10,12 @@ type enventry = VarEntry of varInfo | FunEntry of funInfo
 
 
 exception Compiler_error
-(* µ­¹æÉ½ *)
+(* table *)
 exception No_such_variable of string
 let initTable = function x -> raise (No_such_variable x)
 let update var vl t = function x -> if x = var then vl else t x
 
-(* str ¤ò n ²ó¥³¥Ô¡¼¤¹¤ë *)
+(* copy string n times *)
 let rec nCopyStr n str =
     if n > 0 then str ^ (nCopyStr (pred n) str) else ""
 
@@ -81,10 +81,8 @@ and emit_dec ast nest addr env = match ast with
  | VarDec (s,t) -> (update s (VarEntry {offset=addr-8; vLevel=nest}) env, addr-8, "")
  | _ -> raise Compiler_error
 
-(* Ê¸¤Î½èÍý *)
 and emit_stmt ast nest addr env = 
                  match ast with
-                   (* scan¤Î¥³¡¼¥É *)
                    | CallProc ("scan", [VarExp s]) ->
                        let entry = env s in
                         (match entry with
@@ -96,14 +94,12 @@ and emit_stmt ast nest addr env =
                              ^ "\tmovq $0, %rax\n"
                              ^ "\tcallq scanf\n")
                        | _ -> "")
-                   (* iprint¤Î¥³¡¼¥É *)
                    | CallProc ("iprint", [arg]) -> 
                            (emit_exp arg nest env
                         ^  "\tpopq  %rsi\n"
                         ^  "\tleaq IO(%rip), %rdi\n"
                         ^  "\tmovq $0, %rax\n"
                         ^  "\tcallq printf\n")
-                   (* sprint¤Î¥³¡¼¥É *)
                    | CallProc ("sprint", [StrExp s]) -> 
                        (let l = incLabel() in
                               ("\t.data\n"
@@ -112,11 +108,9 @@ and emit_stmt ast nest addr env =
                             ^ sprintf "\tleaq L%d(%%rip), %%rdi\n" l 
                             ^  "\tmovq $0, %rax\n"     
                             ^ "\tcallq printf\n"))
-                  (* return¤Î¥³¡¼¥É *)
                   | CallProc ("return", head::l) ->
                               emit_exp head nest env
                             ^ "\tpopq %rax\n"
-                  (* ¼êÂ³¤­¸Æ½Ð¤·¤Î¥³¡¼¥É *)
                   | CallProc (s, el) -> 
                       let entry = env s in 
                          (match entry with
@@ -172,9 +166,9 @@ and emit_stmt ast nest addr env =
                                        ^ sprintf "L%d:\n" l
                   (* ¶õÊ¸ *)
                   | NilStmt -> ""
-(* ¼°¤Î½èÍý *)
+
+(* handling expression *)
 and emit_exp ast nest env = match ast with
-                  (* ÊÑ¿ô»²¾È¤Î¥³¡¼¥É¡§reVar¤Ç»²¾È¥Õ¥ì¡¼¥à¤òµá¤á¤ë *)
                     VarExp s -> (let entry = env s in 
                         match entry with
                             VarEntry {offset=addr; vLevel=level} -> 
@@ -182,29 +176,24 @@ and emit_exp ast nest env = match ast with
                                 ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
                                 ^ sprintf "\tpushq %d(%%rax)\n" addr
                           | _ -> "")
-                  (* À°¿ôÄê¿ô¤Î¥³¡¼¥É *)
+                  (* const integer *)
                   |  IntExp i -> (sprintf "\tpushq $%d\n" i)
-                  (* ÊÑ¿ô»²¾È¤Î¥³¡¼¥É¡§reVar¤Ç»²¾È¥Õ¥ì¡¼¥à¤òµá¤á¤ë *)
-                  (* +¤Î¥³¡¼¥É *)
                   | CallFunc ("+", [left; right]) -> 
                                              emit_exp left nest env
                                            ^ emit_exp right nest env
                                            ^ "\tpopq %rax\n"
                                            ^ "\taddq %rax, (%rsp)\n"
-                  (* -¤Î¥³¡¼¥É *)
                   | CallFunc ("-", [left; right]) ->
                                              emit_exp left nest env
                                            ^ emit_exp right nest env
                                            ^ "\tpopq %rax\n"
                                            ^ "\tsubq %rax, (%rsp)\n"
-                  (* *¤Î¥³¡¼¥É *)
                   | CallFunc ("*", [left; right]) ->
                                              emit_exp left nest env
                                            ^ emit_exp right nest env
                                            ^ "\tpopq %rax\n"
                                            ^ "\timulq (%rsp), %rax\n"
                                            ^ "\tmovq %rax, (%rsp)\n"
-                  (* /¤Î¥³¡¼¥É *)
                   | CallFunc ("/", [left; right]) ->
                                              emit_exp left nest env
                                            ^ emit_exp right nest env
@@ -213,14 +202,11 @@ and emit_exp ast nest env = match ast with
                                            ^ "\tcqto\n"
                                            ^ "\tidivq %rbx\n"
                                            ^ "\tpushq %rax\n"
-                  (* È¿Å¾¤Î¥³¡¼¥É *)
                   | CallFunc("!",  arg::_) -> 
                                              emit_exp arg nest env
                                            ^ "\tnegq (%rsp)\n"
-                  (* ´Ø¿ô¸Æ½Ð¤·¤Î¥³¡¼¥É *)
                   | CallFunc (s, el) -> 
                                  emit_stmt (CallProc(s, el)) nest 0 env 
-                                 (* ÊÖÌáÃÍ¤Ï%rax¤ËÆþ¤ì¤ÆÊÖ¤¹ *)
                                ^ "\tpushq %rax\n"
                   | _ -> ""
 
