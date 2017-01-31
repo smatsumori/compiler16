@@ -20,7 +20,6 @@ let rec nCopyStr n str =
     if n > 0 then str ^ (nCopyStr (pred n) str) else ""
 
 
-(* ¸Æ½Ð¤·»þ¤Ëcallee¤ËÅÏ¤¹ÀÅÅª¥ê¥ó¥¯ *)
 let passLink src dst = 
   if src >= dst then 
     let deltaLevel = src-dst+1 in
@@ -30,47 +29,37 @@ let passLink src dst =
   else
     "\tpushq %rbp\n"   
 
-(* printf¤äscanf¤Ç»È¤¦Ê¸»úÎó *)
 let io =  "IO:\n\t.string \"%lld\"\n"
             ^ "\t.text\n"
-(* main´Ø¿ô¤ÎÆ¬ *)
-let header =  "\t.globl main\n"
-            ^ "main:\n"
-            ^ "\tpushq %rbp\n"        (* ¥Õ¥ì¡¼¥à¥Ý¥¤¥ó¥¿¤ÎÊÝÂ¸ *)
-            ^ "\tmovq %rsp, %rbp\n"   (* ¥Õ¥ì¡¼¥à¥Ý¥¤¥ó¥¿¤ò¥¹¥¿¥Ã¥¯¥Ý¥¤¥ó¥¿¤Î°ÌÃÖ¤Ë *)
-(* ´Ø¿ô¸Æ½Ð¤·¤«¤é¤ÎÌá¤ê½èÍý *)
-let footer = "\tleaveq\n"  (* -> movq %rbp, %rsp; popq %rbp *)
-            ^ "\tretq\n" (* ¸Æ½Ð¤·°ÌÃÖ¤Î¼¡¤Î¥¢¥É¥ì¥¹¤ØÌá¤ë *)
 
-(* ¼Â°ú¿ô¤Ï¡¤%rbp ¤«¤é +24 ¤Î¤È¤³¤í¤Ë¤¢¤ë¡¥*)
+let header =  "\t.globl _main\n"   (* for mac *)
+            ^ "_main:\n"
+            ^ "\tpushq %rbp\n"        
+            ^ "\tmovq %rsp, %rbp\n"  
+
+
+let footer = "\tleaveq\n"  (* -> movq %rbp, %rsp; popq %rbp *)
+            ^ "\tretq\n" 
+
 let savedARG = 24 (* return address,  static link, old %rbp *)
 
-(* ¥Ö¥í¥Ã¥¯¤Î½èÍý *)
 let rec emit_block dl sl nest addr env = 
-      (* ¥Ö¥í¥Ã¥¯ÆâÀë¸À¤Î½èÍý *)
       let (dEnv,dAddr,dCode) = 
          List.fold_left (fun (env,addr,code) d  -> 
                            let (lenv,laddr,lcode) = emit_dec d nest (addr) env in
                              (lenv,laddr,code^lcode)) (env,0,"") dl 
-      in  (* ¥Õ¥ì¡¼¥à¤Î³äÉÕ¤± *)
+      in 
           let fCode = sprintf "\tsubq $%d, %%rsp\n" ((-dAddr+16)/16*16) in
-      (* ËÜÂÎ¡ÊÊ¸Îó¡Ë¤Î¥³¡¼¥ÉÀ¸À® *)
              let body = List.fold_left (fun str ast -> (str ^ emit_stmt ast nest dAddr dEnv)) "" sl
-                     (* Àë¸À¤Î¥³¡¼¥É¤ÈËÜÂÎ¤Î¥³¡¼¥É¤òÊÌ¡¹¤ËÊÖ¤¹¡¥*)
                      in (dCode, fCode ^ body)
-(* Àë¸ÀÉô¤Î½èÍý¡§ÊÑ¿ôÀë¸À->µ­¹æÉ½¤Ø¤Î³ÊÇ¼¡¤´Ø¿ôÄêµÁ->¶É½êÀë¸À¤Î½èÍý¤È¥³¡¼¥ÉÀ¸À® *)
 and emit_dec ast nest addr env = match ast with
-   (* ´Ø¿ôÄêµÁ¤Î½èÍý *)
    FunctionDec (s, l, Block (dl,sl)) -> 
-    (* ´Ø¿ôÌ¾¤Îµ­¹æÉ½¤Ø¤ÎÅÐÏ¿ *)
     let funEnv = update s (FunEntry {formals=(List.length l); fLevel=nest+1}) env in
-      (* ²¾°ú¿ô¤Îµ­¹æÉ½¤Ø¤ÎÅÐÏ¿ *)
       let (sigEnv,_) =  
          List.fold_left (fun (env,addr) (s,t) -> 
                             (update s (VarEntry {offset=addr; vLevel=nest+1}) env, addr+8)) (funEnv,savedARG) l 
-      in (* ´Ø¿ôËÜÂÎ¡Ê¥Ö¥í¥Ã¥¯¡Ë¤Î½èÍý *)
+      in 
          let (dcode, bcode) = emit_block dl sl (nest+1) 0 sigEnv in
-    (* ´Ø¿ô¥³¡¼¥É¤Î¹çÀ® *)
               ( funEnv, addr, sprintf "%s:\n" s      (* ´Ø¿ô¥é¥Ù¥ë *)
                               ^ "\tpushq %rbp\n"       (* ¥Õ¥ì¡¼¥à¥Ý¥¤¥ó¥¿¤ÎÊÝÂ¸ *)
                               ^ "\tmovq %rsp, %rbp\n"  (* ¥Õ¥ì¡¼¥à¥Ý¥¤¥ó¥¿¤Î¥¹¥¿¥Ã¥¯¥Ý¥¤¥ó¥¿°ÌÃÖ¤Ø¤Î°ÜÆ° *)
@@ -92,14 +81,14 @@ and emit_stmt ast nest addr env =
                              ^ ((sprintf "\tleaq %d(%%rax), %%rsi\n" addr)
                              ^ "\tleaq IO(%rip), %rdi\n"
                              ^ "\tmovq $0, %rax\n"
-                             ^ "\tcallq scanf\n")
+                             ^ "\tcallq _scanf\n")  (* DEBUG For Mac *)
                        | _ -> "")
                    | CallProc ("iprint", [arg]) -> 
                            (emit_exp arg nest env
                         ^  "\tpopq  %rsi\n"
                         ^  "\tleaq IO(%rip), %rdi\n"
                         ^  "\tmovq $0, %rax\n"
-                        ^  "\tcallq printf\n")
+                        ^  "\tcallq _printf\n")  (* DEBUG For Mac *)
                    | CallProc ("sprint", [StrExp s]) -> 
                        (let l = incLabel() in
                               ("\t.data\n"
@@ -107,7 +96,7 @@ and emit_stmt ast nest addr env =
                             ^ "\t.text\n"
                             ^ sprintf "\tleaq L%d(%%rip), %%rdi\n" l 
                             ^  "\tmovq $0, %rax\n"     
-                            ^ "\tcallq printf\n"))
+                            ^ "\tcallq _printf\n"))
                   | CallProc ("return", head::l) ->
                               emit_exp head nest env
                             ^ "\tpopq %rax\n"
@@ -169,46 +158,58 @@ and emit_stmt ast nest addr env =
 
 (* handling expression *)
 and emit_exp ast nest env = match ast with
-                    VarExp s -> (let entry = env s in 
-                        match entry with
-                            VarEntry {offset=addr; vLevel=level} -> 
-                                  "\tmovq %rbp, %rax\n" 
-                                ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
-                                ^ sprintf "\tpushq %d(%%rax)\n" addr
-                          | _ -> "")
-                  (* const integer *)
-                  |  IntExp i -> (sprintf "\tpushq $%d\n" i)
-                  | CallFunc ("+", [left; right]) -> 
-                                             emit_exp left nest env
-                                           ^ emit_exp right nest env
-                                           ^ "\tpopq %rax\n"
-                                           ^ "\taddq %rax, (%rsp)\n"
-                  | CallFunc ("-", [left; right]) ->
-                                             emit_exp left nest env
-                                           ^ emit_exp right nest env
-                                           ^ "\tpopq %rax\n"
-                                           ^ "\tsubq %rax, (%rsp)\n"
-                  | CallFunc ("*", [left; right]) ->
-                                             emit_exp left nest env
-                                           ^ emit_exp right nest env
-                                           ^ "\tpopq %rax\n"
-                                           ^ "\timulq (%rsp), %rax\n"
-                                           ^ "\tmovq %rax, (%rsp)\n"
-                  | CallFunc ("/", [left; right]) ->
-                                             emit_exp left nest env
-                                           ^ emit_exp right nest env
-                                           ^ "\tpopq %rbx\n"
-                                           ^ "\tpopq %rax\n"
-                                           ^ "\tcqto\n"
-                                           ^ "\tidivq %rbx\n"
-                                           ^ "\tpushq %rax\n"
-                  | CallFunc("!",  arg::_) -> 
-                                             emit_exp arg nest env
-                                           ^ "\tnegq (%rsp)\n"
-                  | CallFunc (s, el) -> 
-                                 emit_stmt (CallProc(s, el)) nest 0 env 
-                               ^ "\tpushq %rax\n"
-                  | _ -> ""
+    VarExp s -> (let entry = env s in 
+        match entry with
+            VarEntry {offset=addr; vLevel=level} -> 
+                  "\tmovq %rbp, %rax\n" 
+                ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
+                ^ sprintf "\tpushq %d(%%rax)\n" addr
+          | _ -> "")
+  (* const integer *)
+  |  IntExp i -> (sprintf "\tpushq $%d\n" i)
+  | CallFunc ("^", [left; right]) ->
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           (* TODO: implement *)
+  | CallFunc ("+", [left; right]) -> 
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           ^ "\tpopq %rax\n"
+                           ^ "\taddq %rax, (%rsp)\n"
+  | CallFunc ("-", [left; right]) ->
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           ^ "\tpopq %rax\n"
+                           ^ "\tsubq %rax, (%rsp)\n"
+  | CallFunc ("*", [left; right]) ->
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           ^ "\tpopq %rax\n"
+                           ^ "\timulq (%rsp), %rax\n"
+                           ^ "\tmovq %rax, (%rsp)\n"
+  | CallFunc ("/", [left; right]) ->
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           ^ "\tpopq %rbx\n"
+                           ^ "\tpopq %rax\n"
+                           ^ "\tcqto\n"
+                           ^ "\tidivq %rbx\n"
+                           ^ "\tpushq %rax\n"
+  | CallFunc ("%", [left; right]) ->
+                             emit_exp left nest env
+                           ^ emit_exp right nest env
+                           ^ "\tpopq %rbx\n"
+                           ^ "\tpopq %rax\n "
+                           ^ "\tcqto\n"
+                           ^ "\tidivq %rbx\n"
+                           ^ "\tpushq %rdx\n"   (* rdx is reminder *)
+  | CallFunc("!",  arg::_) -> 
+                             emit_exp arg nest env
+                           ^ "\tnegq (%rsp)\n"
+  | CallFunc (s, el) -> 
+                 emit_stmt (CallProc(s, el)) nest 0 env 
+               ^ "\tpushq %rax\n"
+  | _ -> ""
 
 (* ´Ø·¸±é»»¤Î½èÍý *)
 and emit_cond ast nest env = match ast with
