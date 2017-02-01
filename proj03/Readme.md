@@ -13,3 +13,5 @@ jmp LOOP
 
 BERAK:
 movq %rbx (%rsp) 	(return statement)
+
+## 加算代入式

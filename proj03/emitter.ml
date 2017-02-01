@@ -122,16 +122,25 @@ and emit_stmt ast nest addr env =
                                   "" -> bcode
                                  | _  -> (print_string "Functions in the sequence of statements are ignored!\n";
                                         bcode))
-                  (* ÂåÆþ¤Î¥³¡¼¥É¡§ÂåÆþÀè¥Õ¥ì¡¼¥à¤òsetVar¤Çµá¤á¤ë¡¥*)
-                  | Assign (s, e) -> (let entry = env s in (* µ­¹æÉ½¤«¤éÂåÆþÀèÊÑ¿ô¤ò¼è¤ê½Ð¤¹¡¥*)
+
+                  | Assign (s, e) -> (let entry = env s in  (* Get symbol from symbol table *)
                                         match entry with 
                                            VarEntry {offset=addr; vLevel=level} -> 
-                                                emit_exp e nest env (* ±¦ÊÕ¤Î¼°¤Î½èÍý *)
+                                                emit_exp e nest env 
                                               ^ "\tmovq %rbp, %rax\n" 
                                               ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
                                               ^ sprintf "\tpopq %d(%%rax)\n" addr
                                          | FunEntry _ -> "")
-                  (* else¤Ê¤·ifÊ¸¤Î¥³¡¼¥É *)
+                  (* AddAssign Here *)
+                  | AddAssign (s, e) -> (let entry = env s in  (* Get symbol from symbol table (function env) *)
+                                        match entry with 
+                                           VarEntry {offset=addr; vLevel=level} ->  (* What is this ? *)
+                                             emit_exp (CallFunc ("+", [VarExp s; e])) nest env   (* call exp and get value *)  (* adjust nest *)
+                                              ^ "\tmovq %rbp, %rax\n"   (* keep rbp *)
+                                              ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
+                                              ^ sprintf "\tpopq %d(%%rax)\n" addr
+                                         | FunEntry _ -> "")
+
                   | If (e,s,None) -> let (condCode,l) = emit_cond e nest env in
                                                   condCode
                                                 ^ emit_stmt s nest addr env
@@ -220,7 +229,7 @@ and emit_exp ast nest env = match ast with
                ^ "\tpushq %rax\n"
   | _ -> ""
 
-(* ´Ø·¸±é»»¤Î½èÍý *)
+(* Conditional statement *)
 and emit_cond ast nest env = match ast with
                   | CallFunc (op, left::right::_) -> 
                       (let code = 
@@ -243,7 +252,7 @@ and emit_cond ast nest env = match ast with
                               | "<=" -> (code ^ sprintf "\tjg L%d\n" l, l)
                               | _ -> ("",0))
                  | _ -> ("",0)
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ¤ÎÀ¸À® *)
+
 let emit_prog ast = match ast with
                        Block (dl, sl) -> 
                            let (dcode, bcode) = emit_block dl sl 0 0 initTable in

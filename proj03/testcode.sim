@@ -1,0 +1,31 @@
+{
+	int a, b, c;
+	sprint ("a % b = ");
+    sprint ("First integer: ");
+    scan  (a);
+    sprint ("Second integer: ");
+    scan (b);
+	c = a % b;
+	iprint(c);
+	sprint ("\n");
+
+	sprint ("c += 5\nc=");
+	c += 5;
+	iprint(c);
+	sprint ("\n");
+
+	sprint ("a ^ b = ");
+    sprint ("First integer: ");
+    scan  (a);
+    sprint ("Second integer: ");
+    scan (b);
+	c = a ^ b;
+	iprint(c);
+	sprint ("\n");
+
+	sprint ("c += 5\nc=");
+	c += 5;
+	iprint(c);
+	sprint ("\n");
+
+}

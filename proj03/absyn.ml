@@ -10,6 +10,7 @@ and dec = FunctionDec of symbol * ((symbol*typ) list) * stmt
 and stmt = CallProc of symbol * (exp list)
         | Block of (dec list) * (stmt list)
         | Assign of symbol * exp
+        | AddAssign of symbol * exp
         | If of exp * stmt * (stmt option)
         | While of exp * stmt
         | NilStmt;;
@@ -31,6 +32,7 @@ let rec  print_stmt ast = match ast with
                                   | (s::l) -> (print_stmt s; List.iter (fun s -> printf ";"; print_stmt s) l)); 
                                print_string "])")
                   | Assign (s, e) -> (printf "Assign(\"%s\"," s; print_exp e; printf ")")
+                  | AddAssign (s, e) -> (printf "AddAssign(\"%s\"," s; print_exp e; printf ")")   (* AddAssign *)
                   | If (e,s,None) -> (printf "If("; print_exp e; print_stmt s; printf ")")
                   | If (e,s1,Some s2) -> (printf "If("; print_exp e; print_string ",";
                                                     print_stmt s1; print_string ",";

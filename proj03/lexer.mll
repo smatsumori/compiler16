@@ -36,7 +36,7 @@ rule lexer = parse
 | '%'      { MOD }  (* HERE modular *)
 | '^'      { POW }  (* HERE  power*)
 | "++"     { INC }  (* HERE  increment*)
-| "+="     { ADDE } (* HERE *)
+| "+="     { ADDA } (* HERE *)
 | '{'      { LB  }
 | '}'      { RB  }
 | '('      { LP  }

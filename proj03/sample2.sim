@@ -1,0 +1,11 @@
+{
+int x;
+
+int add(int a, int b) {
+   x = a+b;
+}
+
+add(1,2);
+iprint(x);
+
+}
