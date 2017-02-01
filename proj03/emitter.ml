@@ -170,7 +170,16 @@ and emit_exp ast nest env = match ast with
   | CallFunc ("^", [left; right]) ->
                              emit_exp left nest env
                            ^ emit_exp right nest env
-                           (* TODO: implement *)
+                           ^"\tpopq %rax\n"	(* 乗数の部分を格納 *)
+                           ^"\tmovq $1, %rbx\n"	(* rval *)
+                           ^"LOOP:\n"
+                           ^"\tcmpq $0,	%rax\n"
+                           ^"\tje BREAK\n"
+                           ^"\tsubq $1,	%rax\n"	
+                           ^"\timulq (%rsp), %rbx\n"
+                           ^"\tjmp LOOP\n"
+                           ^"\tBREAK:\n"
+                           ^"\tmovq %rbx, (%rsp)\n"
   | CallFunc ("+", [left; right]) -> 
                              emit_exp left nest env
                            ^ emit_exp right nest env
