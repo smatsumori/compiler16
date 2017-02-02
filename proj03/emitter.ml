@@ -127,25 +127,23 @@ and emit_stmt ast nest addr env =
                                         match entry with 
                                            VarEntry {offset=addr; vLevel=level} -> 
                                                 emit_exp e nest env 
-                                              ^ "\tmovq %rbp, %rax\n" 
+                                              ^ "\tmovq %rbp, %rax\n"   (* rbp *)
                                               ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
                                               ^ sprintf "\tpopq %d(%%rax)\n" addr
                                          | FunEntry _ -> "")
-                  (* AddAssign Here *)
+                  (* AddAssign Statement Here *)
                   | AddAssign (s, e) -> (let entry = env s in  (* Get symbol from symbol table (function env) *)
                                         match entry with 
                                            VarEntry {offset=addr; vLevel=level} ->  (* What is this ? *)
                                              emit_exp (CallFunc ("+", [VarExp s; e])) nest env   (* call exp and get value *)  (* adjust nest *)
                                               ^ "\tmovq %rbp, %rax\n"   (* keep rbp *)
                                               ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
-                                              ^ sprintf "\tpopq %d(%%rax)\n" addr
+                                              ^ sprintf "\tpopq %d(%%rax)\n" addr (* What this addr represents? *)
                                          | FunEntry _ -> "")
-
                   | If (e,s,None) -> let (condCode,l) = emit_cond e nest env in
                                                   condCode
                                                 ^ emit_stmt s nest addr env
                                                 ^ sprintf "L%d:\n" l
-                  (* else¤¢¤êifÊ¸¤Î¥³¡¼¥É *)
                   | If (e,s1,Some s2) -> let (condCode,l) = emit_cond e nest env in
                                             let l2 = incLabel() in 
                                                   condCode
@@ -154,7 +152,6 @@ and emit_stmt ast nest addr env =
                                                 ^ sprintf "L%d:\n" l
                                                 ^ emit_stmt s2 nest addr env 
                                                 ^ sprintf "L%d:\n" l2
-                  (* whileÊ¸¤Î¥³¡¼¥É *)
                   | While (e,s) -> let (condCode, l) = emit_cond e nest env in
                                      let l2 = incLabel() in
                                          sprintf "L%d:\n" l2 
@@ -172,10 +169,25 @@ and emit_exp ast nest env = match ast with
             VarEntry {offset=addr; vLevel=level} -> 
                   "\tmovq %rbp, %rax\n" 
                 ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
-                ^ sprintf "\tpushq %d(%%rax)\n" addr
+                ^ sprintf "\tpushq %d(%%rax)\n" addr  (* push addr ahead of rax onto the stack *)
           | _ -> "")
   (* const integer *)
   |  IntExp i -> (sprintf "\tpushq $%d\n" i)
+  (* HERE increment *)
+  | CallFunc ("++", VarExp(symb)::_) ->    (* This is technically statment *)
+                            (let entry = env symb in
+                              match entry with
+                                VarEntry {offset=addr; vLevel=level} ->
+                               "\tmovq %rbp, %rax\n" 
+                                ^ nCopyStr (nest-level) "\tmovq 16(%rax), %rax\n"
+                                ^ sprintf "\tpushq %d(%%rax)\n" addr  (* push addr ahead of rax onto the stack *)
+                                ^ sprintf "\taddq $1, %d(%%rax)\n" addr 
+                                | _ -> "")
+                            (*
+                            match id with
+                            VarExp symb ->
+                            emit_stmt (AddAssign (symb, IntExp 1)) nest addr env  (* What is this addr for? *)
+                            *)
   | CallFunc ("^", [left; right]) ->
                              emit_exp left nest env
                            ^ emit_exp right nest env

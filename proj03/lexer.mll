@@ -25,6 +25,8 @@ rule lexer = parse
 | '='      { ASSIGN }
 | "=="     { EQ }
 | "!="     { NEQ }
+| "++"     { INC }  (* HERE  increment*)
+| "+="     { ADDA } (* HERE *)
 | '>'      { GT }
 | '<'      { LT }
 | ">="     { GE }
@@ -35,8 +37,6 @@ rule lexer = parse
 | '/'      { DIV }
 | '%'      { MOD }  (* HERE modular *)
 | '^'      { POW }  (* HERE  power*)
-| "++"     { INC }  (* HERE  increment*)
-| "+="     { ADDA } (* HERE *)
 | '{'      { LB  }
 | '}'      { RB  }
 | '('      { LP  }

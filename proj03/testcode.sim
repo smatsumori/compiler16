@@ -28,4 +28,7 @@
 	iprint(c);
 	sprint ("\n");
 
+	iprint(c++);
+	iprint(c);
+	sprint ("\n");
 }
